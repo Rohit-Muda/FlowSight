@@ -1,0 +1,66 @@
+# ════════════════════════════════════════════
+#  FlowSight — Root .gitignore
+#  Covers BOTH the backend (root) AND the
+#  React client (client/) in one file.
+# ════════════════════════════════════════════
+
+# ── Environment & Secrets ─────────────────
+# NEVER commit API keys, DB connection strings, or any credentials
+.env
+.env.*
+!.env.example
+
+# ── Dependencies ───────────────────────────
+node_modules/
+client/node_modules/
+.pnp
+.pnp.js
+
+# ── Production Build Output ────────────────
+client/build/
+dist/
+build/
+
+# ── Logs ───────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── OS Generated Files ─────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Editor & IDE ───────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Testing ────────────────────────────────
+/coverage
+client/coverage/
+
+# ── Misc ───────────────────────────────────
+*.pem
+.npm
+.eslintcache
+.stylelintcache
+.cache/
+.parcel-cache/
+
+# ── Docker build artifacts ─────────────────
+# (keep Dockerfile and .dockerignore, ignore runtime artifacts)
+docker-compose.override.yml
+
+# ── Optional: keep package-lock for reproducible installs ─
+# package-lock.json  ← do NOT ignore this; it ensures deterministic installs

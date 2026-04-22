@@ -1,0 +1,20 @@
+# FlowSight — Git line ending normalization
+# Ensures consistent LF line endings in the repository regardless of OS.
+# Windows devs get CRLF locally; repo stores LF. No more git warnings.
+
+* text=auto eol=lf
+
+# Force LF for all JS/JSX/CSS/JSON source files
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.css  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.env.example text eol=lf
+
+# Binary files — never convert
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary

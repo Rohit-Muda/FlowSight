@@ -3,6 +3,13 @@ import Shipment from '../models/Shipment.js';
 
 const router = express.Router();
 
+// Allowlist of fields that can be updated via the public API.
+// Prevents arbitrary $set overwriting of any field (e.g. shipmentId, transitHubs).
+const UPDATABLE_FIELDS = new Set([
+  'status', 'riskScore', 'estimatedArrival',
+  'currentLocation', 'carrier'
+]);
+
 router.get('/', async (req, res) => {
   try {
     const shipments = await Shipment.find();
@@ -24,10 +31,22 @@ router.get('/:shipmentId', async (req, res) => {
 
 router.patch('/:shipmentId', async (req, res) => {
   try {
+    // Strip any field not in the allowlist before passing to $set
+    const safeUpdate = {};
+    for (const key of Object.keys(req.body)) {
+      if (UPDATABLE_FIELDS.has(key)) {
+        safeUpdate[key] = req.body[key];
+      }
+    }
+
+    if (Object.keys(safeUpdate).length === 0) {
+      return res.status(400).json({ message: 'No valid fields provided for update.' });
+    }
+
     const updated = await Shipment.findOneAndUpdate(
       { shipmentId: req.params.shipmentId },
-      { $set: req.body },
-      { new: true }
+      { $set: safeUpdate },
+      { returnDocument: 'after' }
     );
     if (!updated) return res.status(404).json({ message: 'Not found' });
     res.json(updated);

@@ -1,11 +1,20 @@
 import express from 'express';
 import Hub from '../models/Hub.js';
-import Shipment from '../models/Shipment.js';
 import { getIO } from '../socket.js';
 import { processDisruption } from '../services/disruptionEngine.js';
 import DisruptionLog from '../models/DisruptionLog.js';
 
 const router = express.Router();
+
+// Allowlist of fields updatable via public PATCH (prevents arbitrary writes)
+const HUB_UPDATABLE_FIELDS = new Set([
+  'congestionLevel', 'isDisrupted'
+]);
+
+// Simple in-memory rate limiter for simulate-disruption:
+// prevents the demo button being spammed (max 1 per 10 seconds per hub)
+const simulateCooldowns = new Map();
+const SIMULATE_COOLDOWN_MS = 10000;
 
 // GET all hubs
 router.get('/', async (req, res) => {
@@ -29,7 +38,7 @@ router.get('/logs/recent', async (req, res) => {
   }
 });
 
-// GET reroute suggestions for a hub
+// GET reroute suggestions for a hub — scored and sorted
 router.get('/:hubId/reroute', async (req, res) => {
   try {
     const hub = await Hub.findOne({ hubId: req.params.hubId });
@@ -47,13 +56,24 @@ router.get('/:hubId/reroute', async (req, res) => {
   }
 });
 
-// PATCH update hub
+// PATCH update hub — field-allowlisted
 router.patch('/:hubId', async (req, res) => {
   try {
+    const safeUpdate = {};
+    for (const key of Object.keys(req.body)) {
+      if (HUB_UPDATABLE_FIELDS.has(key)) {
+        safeUpdate[key] = req.body[key];
+      }
+    }
+
+    if (Object.keys(safeUpdate).length === 0) {
+      return res.status(400).json({ message: 'No valid fields provided for update.' });
+    }
+
     const updated = await Hub.findOneAndUpdate(
       { hubId: req.params.hubId },
-      { $set: req.body },
-      { new: true }
+      { $set: safeUpdate },
+      { returnDocument: 'after' }
     );
     if (!updated) return res.status(404).json({ message: 'Not found' });
     res.json(updated);
@@ -62,13 +82,25 @@ router.patch('/:hubId', async (req, res) => {
   }
 });
 
-// POST simulate disruption (demo button)
+// POST simulate disruption (demo button) — rate-limited to 1 per 10s per hub
 router.post('/:hubId/simulate-disruption', async (req, res) => {
   try {
+    const { hubId } = req.params;
+
+    // Rate-limit check
+    const lastFired = simulateCooldowns.get(hubId);
+    if (lastFired && Date.now() - lastFired < SIMULATE_COOLDOWN_MS) {
+      const remaining = Math.ceil((SIMULATE_COOLDOWN_MS - (Date.now() - lastFired)) / 1000);
+      return res.status(429).json({
+        message: `Disruption simulation on cooldown. Try again in ${remaining}s.`
+      });
+    }
+    simulateCooldowns.set(hubId, Date.now());
+
     const hub = await Hub.findOneAndUpdate(
-      { hubId: req.params.hubId },
+      { hubId },
       { $set: { congestionLevel: 92, isDisrupted: true } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!hub) return res.status(404).json({ message: 'Hub not found' });
 

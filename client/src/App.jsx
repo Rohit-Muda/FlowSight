@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import Navbar from './components/Navbar';
@@ -8,8 +8,11 @@ import AlertPanel from './components/AlertPanel';
 import Timeline from './components/Timeline';
 import './index.css';
 
-const socket = io('http://localhost:5000');
-const API = 'http://localhost:5000/api';
+import { API_BASE, SOCKET_URL } from './config';
+
+// Socket created once at module level — persists across React StrictMode double-invocations
+const socket = io(SOCKET_URL, { autoConnect: true });
+const API = API_BASE;
 
 export default function App() {
   const [shipments, setShipments] = useState([]);
@@ -37,24 +40,27 @@ export default function App() {
     fetchData();
   }, []);
 
-  // Socket listeners
+  // Socket listeners — use named handler references so .off() correctly
+  // removes only these specific handlers (not ALL listeners for the event).
+  // This prevents the listener leak that occurs in React 18/19 StrictMode
+  // where effects run twice and double-register anonymous handlers.
   useEffect(() => {
-    socket.on('connect', () => setConnected(true));
-    socket.on('disconnect', () => setConnected(false));
+    const onConnect    = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
 
-    socket.on('shipment-update', (data) => {
+    const onShipmentUpdate = (data) => {
       setShipments(prev =>
         prev.map(s => s.shipmentId === data.shipmentId ? { ...s, ...data } : s)
       );
-    });
+    };
 
-    socket.on('hub-update', (data) => {
+    const onHubUpdate = (data) => {
       setHubs(prev =>
         prev.map(h => h.hubId === data.hubId ? { ...h, ...data } : h)
       );
-    });
+    };
 
-    socket.on('disruption-alert', (data) => {
+    const onDisruptionAlert = (data) => {
       setActiveAlert(data);
       setDisruptionLogs(prev => [{
         hubId: data.hubId,
@@ -64,30 +70,34 @@ export default function App() {
         aiMessage: data.aiMessage,
         createdAt: data.timestamp
       }, ...prev].slice(0, 20));
-    });
+    };
 
+    socket.on('connect',           onConnect);
+    socket.on('disconnect',        onDisconnect);
+    socket.on('shipment-update',   onShipmentUpdate);
+    socket.on('hub-update',        onHubUpdate);
+    socket.on('disruption-alert',  onDisruptionAlert);
+
+    // Cleanup: pass the exact same handler reference so only THIS effect's
+    // listeners are removed, not any other component's listeners
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('shipment-update');
-      socket.off('hub-update');
-      socket.off('disruption-alert');
+      socket.off('connect',          onConnect);
+      socket.off('disconnect',       onDisconnect);
+      socket.off('shipment-update',  onShipmentUpdate);
+      socket.off('hub-update',       onHubUpdate);
+      socket.off('disruption-alert', onDisruptionAlert);
     };
   }, []);
 
   const handleSimulate = async () => {
-    try {
-      await axios.post(`${API}/hubs/HUB001/simulate-disruption`);
-    } catch (err) {
-      console.error('Simulate error:', err.message);
-    }
+    await axios.post(`${API}/hubs/HUB001/simulate-disruption`);
   };
 
   const stats = {
-    total: shipments.length,
-    onTime: shipments.filter(s => s.status === 'on-time').length,
-    atRisk: shipments.filter(s => s.status === 'at-risk').length,
-    delayed: shipments.filter(s => s.status === 'delayed').length,
+    total:     shipments.length,
+    onTime:    shipments.filter(s => s.status === 'on-time').length,
+    atRisk:    shipments.filter(s => s.status === 'at-risk').length,
+    delayed:   shipments.filter(s => s.status === 'delayed').length,
     disrupted: hubs.filter(h => h.isDisrupted).length
   };
 

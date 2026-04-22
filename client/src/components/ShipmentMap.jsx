@@ -1,6 +1,9 @@
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// react-leaflet v5: MapConsumer and useMapElement removed. We use hooks directly.
+// Circle component from react-leaflet is still valid but not needed here — we use CSS via divIcon.
 
 const getRiskColor = (score) => {
   if (score >= 70) return '#ef4444';
@@ -14,7 +17,7 @@ const getStatusColor = (status) => {
   return '#22c55e';
 };
 
-const createShipmentIcon = (status, riskScore) => {
+const createShipmentIcon = (status) => {
   const color = getStatusColor(status);
   return L.divIcon({
     html: `
@@ -33,27 +36,45 @@ const createShipmentIcon = (status, riskScore) => {
 
 const createHubIcon = (isDisrupted) => {
   const color = isDisrupted ? '#ef4444' : '#6366f1';
+
+  // Pulsing ring for disrupted hubs using @keyframes hubPulse defined in index.css
+  const pulsingRing = isDisrupted
+    ? `<div style="
+        position:absolute;
+        top:50%;left:50%;
+        width:30px;height:30px;
+        border-radius:50%;
+        border:1.5px solid ${color};
+        animation:hubPulse 1.5s ease-out infinite;
+      "></div>`
+    : '';
+
   return L.divIcon({
     html: `
-      <div style="
-        width:18px;height:18px;border-radius:50%;
-        background:${color}22;
-        border:2px solid ${color};
-        box-shadow:0 0 14px ${color}66;
-        display:flex;align-items:center;justify-content:center;
-      ">
-        <div style="width:6px;height:6px;border-radius:50%;background:${color};"></div>
+      <div style="position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+        ${pulsingRing}
+        <div style="
+          width:18px;height:18px;border-radius:50%;
+          background:${color}22;
+          border:2px solid ${color};
+          box-shadow:0 0 14px ${color}66;
+          display:flex;align-items:center;justify-content:center;
+          position:relative;z-index:1;
+        ">
+          <div style="width:6px;height:6px;border-radius:50%;background:${color};"></div>
+        </div>
       </div>`,
     className: '',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    popupAnchor: [0, -12]
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18]
   });
 };
 
 export default function ShipmentMap({ shipments, hubs }) {
   return (
     <div className="map-container">
+      {/* react-leaflet v5: MapContainer — whenCreated prop removed, use ref callback instead if needed */}
       <MapContainer
         center={[20, 20]}
         zoom={2}
@@ -77,7 +98,7 @@ export default function ShipmentMap({ shipments, hubs }) {
                 <div className="popup-id">PORT / HUB</div>
                 <div className="popup-route">{hub.name}</div>
                 <div className="popup-carrier">
-                  {hub.isDisrupted ? 'DISRUPTED' : 'Operational'}
+                  {hub.isDisrupted ? '⚠ DISRUPTED' : '✓ Operational'}
                 </div>
                 <div className="popup-row">
                   <div>
@@ -96,7 +117,7 @@ export default function ShipmentMap({ shipments, hubs }) {
           <Marker
             key={s.shipmentId}
             position={[s.currentLocation.lat, s.currentLocation.lng]}
-            icon={createShipmentIcon(s.status, s.riskScore)}
+            icon={createShipmentIcon(s.status)}
           >
             <Popup>
               <div>

@@ -48,9 +48,11 @@ export const processDisruption = async (hub) => {
     ));
     const newStatus = newRisk >= 70 ? 'delayed' : 'at-risk';
 
+    // Mongoose 9: use returnDocument: 'after' (idiomatic MongoDB driver style)
     await Shipment.findOneAndUpdate(
       { shipmentId: shipment.shipmentId },
-      { $set: { riskScore: newRisk, status: newStatus } }
+      { $set: { riskScore: newRisk, status: newStatus } },
+      { returnDocument: 'after' }
     );
 
     updatedShipments.push({
@@ -102,27 +104,42 @@ export const processDisruption = async (hub) => {
 
 export const detectAnomalies = async () => {
   try {
-    const hubs = await Hub.find({ congestionLevel: { $gt: 70 } });
+    // FIX: Only query hubs that are NOT yet marked disrupted to prevent
+    // re-firing processDisruption (and Gemini API calls) every 30s
+    const newlyDisruptedHubs = await Hub.find({
+      congestionLevel: { $gt: 70 },
+      isDisrupted: false
+    });
 
-    for (const hub of hubs) {
-      if (!hub.isDisrupted) {
-        await Hub.findOneAndUpdate(
-          { hubId: hub.hubId },
-          { $set: { isDisrupted: true } }
-        );
-      }
-      await processDisruption(hub);
+    for (const hub of newlyDisruptedHubs) {
+      const updated = await Hub.findOneAndUpdate(
+        { hubId: hub.hubId },
+        { $set: { isDisrupted: true } },
+        { returnDocument: 'after' }
+      );
+      // Emit hub-update so frontend turns marker red immediately
+      getIO().emit('hub-update', {
+        hubId: updated.hubId,
+        name: updated.name,
+        congestionLevel: updated.congestionLevel,
+        isDisrupted: true
+      });
+      await processDisruption(updated);
     }
 
+    // Auto-recovery: hubs that dropped BELOW 70% but are still flagged.
+    // Use $lt (not $lte) to match the disruption trigger of $gt: 70.
+    // A hub at exactly 70% stays in its current state — consistent boundary.
     const recoveredHubs = await Hub.find({
-      congestionLevel: { $lte: 70 },
+      congestionLevel: { $lt: 70 },
       isDisrupted: true
     });
 
     for (const hub of recoveredHubs) {
       await Hub.findOneAndUpdate(
         { hubId: hub.hubId },
-        { $set: { isDisrupted: false } }
+        { $set: { isDisrupted: false } },
+        { returnDocument: 'after' }
       );
       getIO().emit('hub-update', {
         hubId: hub.hubId,

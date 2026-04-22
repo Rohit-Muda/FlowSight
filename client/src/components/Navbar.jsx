@@ -1,4 +1,25 @@
+import { useState } from 'react';
+
 export default function Navbar({ stats, connected, onSimulate }) {
+  const [simulating, setSimulating] = useState(false);
+  const [simDone, setSimDone] = useState(false);
+
+  const handleSimulate = async () => {
+    if (simulating) return;
+    setSimulating(true);
+    setSimDone(false);
+    try {
+      await onSimulate();
+      setSimDone(true);
+      setTimeout(() => setSimDone(false), 3000);
+    } finally {
+      setSimulating(false);
+    }
+  };
+
+  const btnLabel = simulating ? 'Simulating…' : simDone ? '✓ Disruption Fired' : 'Simulate Disruption';
+  const btnStyle = simDone ? { background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.4)', color: '#22c55e' } : {};
+
   return (
     <nav className="navbar">
       <div className="navbar-brand">
@@ -42,8 +63,14 @@ export default function Navbar({ stats, connected, onSimulate }) {
           <div className="live-dot" />
           {connected ? 'Live' : 'Offline'}
         </div>
-        <button className="simulate-btn" onClick={onSimulate}>
-          Simulate Disruption
+        <button
+          id="simulate-btn"
+          className="simulate-btn"
+          onClick={handleSimulate}
+          disabled={simulating}
+          style={btnStyle}
+        >
+          {btnLabel}
         </button>
       </div>
     </nav>

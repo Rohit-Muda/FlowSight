@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:5000/api';
+import { API_BASE } from '../config';
+const API = API_BASE;
 
 export default function AlertPanel({ alert, hubs, onClose }) {
   const [reroutes, setReroutes] = useState([]);

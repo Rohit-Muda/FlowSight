@@ -16,10 +16,11 @@ export const startDisruptionSimulator = (io) => {
 
       const isDisrupted = newCongestion > 70;
 
+      // returnDocument: 'after' — correct Mongoose 9 / MongoDB driver idiom
       const updatedHub = await Hub.findOneAndUpdate(
         { hubId: randomHub.hubId },
         { $set: { congestionLevel: newCongestion, isDisrupted } },
-        { new: true }
+        { returnDocument: 'after' }
       );
 
       io.emit('hub-update', {
@@ -29,7 +30,9 @@ export const startDisruptionSimulator = (io) => {
         isDisrupted
       });
 
-      if (isDisrupted) {
+      // Only fire processDisruption if this is a NEW disruption event
+      // (hub was not previously disrupted, but now is)
+      if (isDisrupted && !randomHub.isDisrupted) {
         await processDisruption(updatedHub);
       }
 

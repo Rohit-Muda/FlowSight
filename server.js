@@ -17,7 +17,17 @@ const app = express();
 const server = http.createServer(app);
 const io = initSocket(server);
 
-app.use(cors());
+// Restrict CORS to known origins (localhost dev + Firebase production)
+const allowedOrigins = [
+  'http://localhost:3000',
+  /\.web\.app$/,
+  /\.firebaseapp\.com$/
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PATCH']
+}));
 app.use(express.json());
 
 app.use('/api/shipments', shipmentRoutes);

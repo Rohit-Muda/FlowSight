@@ -66,9 +66,13 @@ export default function Timeline({ logs }) {
       ) : (
         <div className="timeline-chart">
           <ResponsiveContainer width="100%" height="100%">
+            {/* Recharts 3: accessibilityLayer is now true by default.
+                We explicitly set false to preserve previous behaviour and
+                avoid unexpected DOM changes in our dark-theme chart. */}
             <AreaChart
               data={chartData}
               margin={{ top: 10, right: 20, left: -20, bottom: 0 }}
+              accessibilityLayer={false}
             >
               <defs>
                 <linearGradient id="congestionGrad" x1="0" y1="0" x2="0" y2="1">
@@ -99,6 +103,8 @@ export default function Timeline({ logs }) {
 
               <Tooltip content={<CustomTooltip />} />
 
+              {/* Recharts 3: alwaysShow prop removed from ReferenceLine.
+                  Use ifOverflow="extendDomain" if needed. Standard label still works. */}
               <ReferenceLine
                 y={70}
                 stroke="rgba(245,158,11,0.4)"
