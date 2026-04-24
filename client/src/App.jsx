@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import Navbar from './components/Navbar';
@@ -22,6 +22,8 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [disruptionLogs, setDisruptionLogs] = useState([]);
   const [showAuction, setShowAuction] = useState(false);
+  // Toast state for simulate-disruption feedback
+  const [toast, setToast] = useState(null); // { type: 'error'|'warning', message: string }
 
   // Initial data fetch
   useEffect(() => {
@@ -96,8 +98,27 @@ export default function App() {
     };
   }, []);
 
+  const showToast = (type, message, durationMs = 5000) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), durationMs);
+  };
+
   const handleSimulate = async () => {
-    await axios.post(`${API}/hubs/HUB001/simulate-disruption`);
+    try {
+      await axios.post(`${API}/hubs/HUB001/simulate-disruption`);
+    } catch (err) {
+      // Determine a user-friendly message
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        showToast('error', '⚠️ Backend unreachable — ensure the server is running on port 5000.');
+      } else if (err.response?.status === 429) {
+        // Rate-limit cooldown from the backend
+        const msg = err.response?.data?.message || 'Simulation on cooldown. Try again shortly.';
+        showToast('warning', `⏱ ${msg}`);
+      } else {
+        showToast('error', `Simulation failed: ${err.response?.data?.message || err.message}`);
+      }
+      console.error('Simulate disruption error:', err.message);
+    }
   };
 
   const stats = {
@@ -110,7 +131,7 @@ export default function App() {
 
   return (
     <div className="app">
-    <Navbar stats={stats} connected={connected} onSimulate={handleSimulate} onAuction={() => setShowAuction(true)} />
+      <Navbar stats={stats} connected={connected} onSimulate={handleSimulate} onAuction={() => setShowAuction(true)} />
       <div className="main-layout">
         <div className="map-and-timeline">
           <ShipmentMap shipments={shipments} hubs={hubs} />
@@ -130,6 +151,12 @@ export default function App() {
           shipments={shipments}
           onClose={() => setShowAuction(false)}
         />
+      )}
+      {toast && (
+        <div className={`app-toast app-toast--${toast.type}`} role="alert">
+          {toast.message}
+          <button className="app-toast__close" onClick={() => setToast(null)} aria-label="Dismiss">✕</button>
+        </div>
       )}
     </div>
   );

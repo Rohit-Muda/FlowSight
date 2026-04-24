@@ -113,4 +113,71 @@ router.get('/:shipmentId/bids', async (req, res) => {
   }
 });
 
+// GET a single auction (shipment with open auction)
+router.get('/:shipmentId', async (req, res) => {
+  try {
+    const shipment = await Shipment.findOne({ shipmentId: req.params.shipmentId });
+    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+    if (!shipment.auction.isOpen) return res.status(404).json({ message: 'No active auction for this shipment' });
+    res.json(shipment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST accept a bid and close the auction
+router.post('/:shipmentId/accept-bid', async (req, res) => {
+  try {
+    const { bidId } = req.body;
+    if (!bidId) return res.status(400).json({ message: 'bidId is required' });
+
+    const shipment = await Shipment.findOne({ shipmentId: req.params.shipmentId });
+    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+    if (!shipment.auction.isOpen) return res.status(400).json({ message: 'No active auction to accept' });
+
+    const winningBid = await Bid.findById(bidId);
+    if (!winningBid) return res.status(404).json({ message: 'Bid not found' });
+    if (winningBid.shipmentId !== req.params.shipmentId) {
+      return res.status(400).json({ message: 'Bid does not belong to this shipment' });
+    }
+
+    // Mark all other bids as outbid
+    await Bid.updateMany(
+      { shipmentId: req.params.shipmentId, _id: { $ne: bidId } },
+      { $set: { status: 'outbid' } }
+    );
+    // Mark winning bid as won
+    await Bid.findByIdAndUpdate(bidId, { $set: { status: 'won' } });
+
+    // Close the auction on the shipment
+    const updated = await Shipment.findOneAndUpdate(
+      { shipmentId: req.params.shipmentId },
+      {
+        $set: {
+          'auction.isOpen': false,
+          'auction.currentBidder': winningBid.bidderName,
+          'auction.currentBidUSD': winningBid.amountUSD
+        }
+      },
+      { returnDocument: 'after' }
+    );
+
+    // Notify all clients the auction has resolved
+    getIO().emit('auction-closed', {
+      shipmentId: req.params.shipmentId,
+      winner: winningBid.bidderName,
+      winningBid: winningBid.amountUSD
+    });
+
+    res.json({
+      message: 'Bid accepted. Auction closed.',
+      winner: winningBid.bidderName,
+      winningBid: winningBid.amountUSD,
+      auction: updated.auction
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

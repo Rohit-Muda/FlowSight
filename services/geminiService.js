@@ -39,8 +39,18 @@ Do not use bullet points, markdown, or line breaks. Write plain sentences only.`
     return text;
 
   } catch (error) {
-    console.error('Gemini API error:', error.message);
-    // Robust fallback — always returns a meaningful alert even if API fails
+    // Parse Gemini API error — the SDK wraps the JSON body as error.message
+    let reason = error.message || 'Unknown error';
+    let retryAfter = '';
+    try {
+      const parsed = JSON.parse(error.message);
+      reason = parsed?.error?.message?.split('\n')[0] ?? reason;
+      const retryInfo = parsed?.error?.details?.find(d => d['@type']?.includes('RetryInfo'));
+      if (retryInfo?.retryDelay) retryAfter = ` (retry in ${retryInfo.retryDelay})`;
+    } catch { /* not JSON, use raw message */ }
+
+    console.warn(`Gemini unavailable for ${hubName}: ${reason}${retryAfter} — using fallback`);
+    // Robust fallback — always returns a meaningful alert even if API is unavailable
     return `${hubName} is experiencing critical congestion at ${congestionLevel}%, with a ripple risk score of ${rippleScore}/100 across ${affectedShipments.length} active shipment(s). Immediate rerouting is recommended — review alternate route options and contact carriers for the affected shipments.`;
   }
 };

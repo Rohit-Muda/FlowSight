@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { API_BASE, SOCKET_URL } from '../config.js';
@@ -10,6 +10,8 @@ const socket = io(SOCKET_URL, { autoConnect: true });
 
 export default function AuctionPanel({ shipments, onClose }) {
   const [auctions, setAuctions] = useState([]);
+  const [bids, setBids] = useState({});           // { [shipmentId]: Bid[] }
+  const [acceptingBid, setAcceptingBid] = useState(null); // bidId being accepted
   const [bidForm, setBidForm] = useState({ shipmentId: '', name: '', contact: '', amount: '' });
   const [message, setMessage] = useState('');
 
@@ -19,28 +21,48 @@ export default function AuctionPanel({ shipments, onClose }) {
     !s.auction?.isOpen
   );
 
-  // Fetch helper — shared by initial load and socket-triggered refreshes
-  const fetchAuctions = () => {
-    axios.get(`${API_BASE}/auctions`)
-      .then(res => setAuctions(res.data))
+  // fetchBids is stable — no external deps beyond the API constant
+  const fetchBids = useCallback((shipmentId) => {
+    axios.get(`${API_BASE}/auctions/${shipmentId}/bids`)
+      .then(res => setBids(prev => ({ ...prev, [shipmentId]: res.data })))
       .catch(() => {});
-  };
+  }, []);
 
-  // Initial fetch + real-time socket listeners for auction-opened and bid-placed
+  // fetchAuctions depends on fetchBids (stable via useCallback)
+  const fetchAuctions = useCallback(() => {
+    axios.get(`${API_BASE}/auctions`)
+      .then(res => {
+        setAuctions(res.data);
+        // Fetch bids for each open auction
+        res.data.forEach(s => fetchBids(s.shipmentId));
+      })
+      .catch(() => {});
+  }, [fetchBids]);
+
+  // Initial fetch + real-time socket listeners for auction-opened, bid-placed, auction-closed
   useEffect(() => {
     fetchAuctions();
 
     const onAuctionOpened = () => fetchAuctions();
-    const onBidPlaced     = () => fetchAuctions();
+    const onBidPlaced     = (data) => {
+      fetchAuctions();
+      if (data?.shipmentId) fetchBids(data.shipmentId);
+    };
+    const onAuctionClosed = (data) => {
+      fetchAuctions();
+      setMessage(`✓ Auction closed — Winner: ${data.winner} ($${data.winningBid?.toLocaleString()})`);
+    };
 
     socket.on('auction-opened', onAuctionOpened);
     socket.on('bid-placed',     onBidPlaced);
+    socket.on('auction-closed', onAuctionClosed);
 
     return () => {
       socket.off('auction-opened', onAuctionOpened);
       socket.off('bid-placed',     onBidPlaced);
+      socket.off('auction-closed', onAuctionClosed);
     };
-  }, []);
+  }, [fetchAuctions]);
 
   const openAuction = async (shipmentId) => {
     try {
@@ -65,6 +87,19 @@ export default function AuctionPanel({ shipments, onClose }) {
       fetchAuctions();
     } catch (err) {
       setMessage(err.response?.data?.message || 'Bid failed');
+    }
+  };
+
+  const acceptBid = async (shipmentId, bidId, bidderName, amountUSD) => {
+    setAcceptingBid(bidId);
+    try {
+      await axios.post(`${API_BASE}/auctions/${shipmentId}/accept-bid`, { bidId });
+      setMessage(`✓ Bid accepted — ${bidderName} wins at $${amountUSD.toLocaleString()}`);
+      fetchAuctions();
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Failed to accept bid');
+    } finally {
+      setAcceptingBid(null);
     }
   };
 
@@ -197,11 +232,56 @@ export default function AuctionPanel({ shipments, onClose }) {
                     width: '100%', padding: '7px', borderRadius: '6px',
                     background: 'rgba(99,102,241,0.15)', border: '0.5px solid rgba(99,102,241,0.4)',
                     color: '#818cf8', fontWeight: 600, fontSize: '12px', cursor: 'pointer',
-                    fontFamily: 'inherit'
+                    fontFamily: 'inherit', marginBottom: '6px'
                   }}
                 >
                   Place Bid
                 </button>
+
+                {/* Bids list with Accept button */}
+                {(bids[s.shipmentId] || []).length > 0 && (
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748b', marginBottom: '6px' }}>
+                      Bids ({(bids[s.shipmentId] || []).length})
+                    </div>
+                    {(bids[s.shipmentId] || []).map(bid => (
+                      <div key={bid._id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '6px 10px', borderRadius: '6px', marginBottom: '4px',
+                        background: bid.status === 'won' ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)',
+                        border: `0.5px solid ${bid.status === 'won' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)'}`
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#e2e8f0' }}>{bid.bidderName}</div>
+                          <div style={{ fontSize: '10px', color: '#64748b' }}>{bid.bidderContact}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
+                            ${bid.amountUSD.toLocaleString()}
+                          </div>
+                          {bid.status === 'won' ? (
+                            <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '10px', background: 'rgba(34,197,94,0.12)', color: '#22c55e', fontWeight: 600 }}>WON</span>
+                          ) : bid.status === 'outbid' ? (
+                            <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '10px', background: 'rgba(100,116,139,0.12)', color: '#64748b', fontWeight: 600 }}>OUTBID</span>
+                          ) : (
+                            <button
+                              onClick={() => acceptBid(s.shipmentId, bid._id, bid.bidderName, bid.amountUSD)}
+                              disabled={acceptingBid === bid._id}
+                              style={{
+                                padding: '3px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
+                                background: 'rgba(34,197,94,0.15)', border: '0.5px solid rgba(34,197,94,0.4)',
+                                color: '#22c55e', cursor: 'pointer', fontFamily: 'inherit',
+                                opacity: acceptingBid === bid._id ? 0.6 : 1
+                              }}
+                            >
+                              {acceptingBid === bid._id ? 'Accepting…' : 'Accept Bid'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

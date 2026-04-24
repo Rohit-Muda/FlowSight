@@ -11,9 +11,7 @@ const HUB_UPDATABLE_FIELDS = new Set([
   'congestionLevel', 'isDisrupted'
 ]);
 
-// Simple in-memory rate limiter for simulate-disruption:
-// prevents the demo button being spammed (max 1 per 10 seconds per hub)
-const simulateCooldowns = new Map();
+// Cooldown duration for simulate-disruption (10 seconds)
 const SIMULATE_COOLDOWN_MS = 10000;
 
 // GET all hubs
@@ -82,27 +80,31 @@ router.patch('/:hubId', async (req, res) => {
   }
 });
 
-// POST simulate disruption (demo button) — rate-limited to 1 per 10s per hub
+// POST simulate disruption (demo button) — rate-limited to 1 per 10s per hub (DB-persisted)
 router.post('/:hubId/simulate-disruption', async (req, res) => {
   try {
     const { hubId } = req.params;
 
-    // Rate-limit check
-    const lastFired = simulateCooldowns.get(hubId);
-    if (lastFired && Date.now() - lastFired < SIMULATE_COOLDOWN_MS) {
-      const remaining = Math.ceil((SIMULATE_COOLDOWN_MS - (Date.now() - lastFired)) / 1000);
-      return res.status(429).json({
-        message: `Disruption simulation on cooldown. Try again in ${remaining}s.`
-      });
+    // Fetch hub to check DB-persisted rate-limit timestamp
+    const existingHub = await Hub.findOne({ hubId });
+    if (!existingHub) return res.status(404).json({ message: 'Hub not found' });
+
+    // DB-persisted rate-limit check (survives server restarts)
+    if (existingHub.lastSimulatedAt) {
+      const elapsed = Date.now() - new Date(existingHub.lastSimulatedAt).getTime();
+      if (elapsed < SIMULATE_COOLDOWN_MS) {
+        const remaining = Math.ceil((SIMULATE_COOLDOWN_MS - elapsed) / 1000);
+        return res.status(429).json({
+          message: `Disruption simulation on cooldown. Try again in ${remaining}s.`
+        });
+      }
     }
-    simulateCooldowns.set(hubId, Date.now());
 
     const hub = await Hub.findOneAndUpdate(
       { hubId },
-      { $set: { congestionLevel: 92, isDisrupted: true } },
+      { $set: { congestionLevel: 92, isDisrupted: true, lastSimulatedAt: new Date() } },
       { returnDocument: 'after' }
     );
-    if (!hub) return res.status(404).json({ message: 'Hub not found' });
 
     getIO().emit('hub-update', {
       hubId: hub.hubId,

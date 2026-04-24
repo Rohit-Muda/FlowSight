@@ -14,6 +14,9 @@ const hubSchema = new mongoose.Schema({
   },
   congestionLevel: { type: Number, min: 0, max: 100, default: 20 },
   isDisrupted: { type: Boolean, default: false },
+  // Persisted rate-limit timestamp — survives server restarts
+  lastSimulatedAt: { type: Date, default: null },
+  lastRecoveredAt: { type: Date, default: null },
   alternateRoutes: [{
     name: String,
     extraTimeMins: Number,
