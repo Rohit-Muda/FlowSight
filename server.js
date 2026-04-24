@@ -21,6 +21,7 @@ const io = initSocket(server);
 // Restrict CORS to known origins (localhost dev + Firebase production)
 const allowedOrigins = [
   'http://localhost:3000',
+  'https://flowsight-frontend-969140599829.asia-south1.run.app',
   /\.web\.app$/,
   /\.firebaseapp\.com$/
 ];

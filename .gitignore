@@ -62,5 +62,11 @@ client/coverage/
 # (keep Dockerfile and .dockerignore, ignore runtime artifacts)
 docker-compose.override.yml
 
+# ── Temporary Deployment & Tests ───────────
+env.yaml
+.testsprite/
+testsprite_tests/
+*.log
+
 # ── Optional: keep package-lock for reproducible installs ─
 # package-lock.json  ← do NOT ignore this; it ensures deterministic installs

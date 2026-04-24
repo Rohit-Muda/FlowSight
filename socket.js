@@ -7,6 +7,7 @@ export const initSocket = (server) => {
     cors: {
       origin: [
         'http://localhost:3000',
+        'https://flowsight-frontend-969140599829.asia-south1.run.app',
         /\.web\.app$/,
         /\.firebaseapp\.com$/
       ],
