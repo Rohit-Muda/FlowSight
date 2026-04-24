@@ -153,7 +153,8 @@ export const detectAnomalies = async () => {
   }
 };
 
-export const startDisruptionEngine = () => {
+// io parameter accepted for API consistency with server.js — internally uses getIO() singleton
+export const startDisruptionEngine = (_io) => {
   console.log('Disruption Engine started');
   setInterval(async () => {
     await detectAnomalies();

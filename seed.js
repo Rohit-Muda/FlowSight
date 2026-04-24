@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Shipment from './models/Shipment.js';
 import Hub from './models/Hub.js';
+import Bid from './models/Bid.js';
 
 dotenv.config();
 
@@ -112,12 +113,18 @@ const shipments = [
   },
   {
     shipmentId: 'SHP005',
-    origin: { city: 'Singapore', country: 'Singapore' },
+    origin: { city: 'Dubai', country: 'UAE' },
     destination: { city: 'Rotterdam', country: 'Netherlands' },
-    currentLocation: { lat: 1.3521, lng: 103.8198 }, // At Singapore Port
-    carrier: 'Evergreen', status: 'delayed', riskScore: 78,
-    estimatedArrival: new Date(now + 2 * day),
-    transitHubs: ['Singapore Port', 'Dubai Port', 'Rotterdam Port']
+    currentLocation: { lat: 25.2048, lng: 55.2708 },
+    carrier: 'MSC', status: 'at-risk', riskScore: 52,
+    estimatedArrival: new Date(now + 4 * day),
+    transitHubs: ['Dubai Port', 'Rotterdam Port'],
+    cargoType: 'perishable',
+    cargoDescription: 'Fresh Alphonso Mangoes — 12 metric tons',
+    cargoValueUSD: 48000,
+    expiryHours: 72,
+    daysStuckAtHub: 2,
+    noticesSent: 1
   },
   {
     shipmentId: 'SHP006',
@@ -140,12 +147,19 @@ const shipments = [
   {
     shipmentId: 'SHP008',
     origin: { city: 'Rotterdam', country: 'Netherlands' },
-    destination: { city: 'New York', country: 'USA' },
-    currentLocation: { lat: 48.5, lng: -28.4 },  // North Atlantic
-    carrier: 'MSC', status: 'on-time', riskScore: 10,
-    estimatedArrival: new Date(now + 7 * day),
-    transitHubs: ['Rotterdam Port', 'New York Port']
+    destination: { city: 'Mumbai', country: 'India' },
+    currentLocation: { lat: 51.9225, lng: 4.4792 },
+    carrier: 'DHL', status: 'delayed', riskScore: 78,
+    estimatedArrival: new Date(now + 1 * day),
+    transitHubs: ['Rotterdam Port', 'Dubai Port', 'Mumbai Port'],
+    cargoType: 'frozen',
+    cargoDescription: 'Frozen Atlantic Salmon — 8 metric tons',
+    cargoValueUSD: 62000,
+    expiryHours: 48,
+    daysStuckAtHub: 3,
+    noticesSent: 2
   },
+
   {
     shipmentId: 'SHP009',
     origin: { city: 'Shanghai', country: 'China' },
@@ -157,12 +171,18 @@ const shipments = [
   },
   {
     shipmentId: 'SHP010',
-    origin: { city: 'Dubai', country: 'UAE' },
+    origin: { city: 'Singapore', country: 'Singapore' },
     destination: { city: 'Rotterdam', country: 'Netherlands' },
-    currentLocation: { lat: 25.2048, lng: 55.2708 }, // At Dubai Port
-    carrier: 'DHL', status: 'at-risk', riskScore: 63,
-    estimatedArrival: new Date(now + 5 * day),
-    transitHubs: ['Dubai Port', 'Rotterdam Port']
+    currentLocation: { lat: 1.3521, lng: 103.8198 },
+    carrier: 'COSCO', status: 'delayed', riskScore: 91,
+    estimatedArrival: new Date(now + 1 * day),
+    transitHubs: ['Singapore Port', 'Dubai Port', 'Rotterdam Port'],
+    cargoType: 'perishable',
+    cargoDescription: 'Durian Fruit Export — 5 metric tons',
+    cargoValueUSD: 31000,
+    expiryHours: 96,
+    daysStuckAtHub: 32,
+    noticesSent: 4
   }
 ];
 
@@ -171,6 +191,7 @@ const seedDB = async () => {
   console.log('Connected for seeding...');
   await Shipment.deleteMany({});
   await Hub.deleteMany({});
+  await Bid.deleteMany({});
   await Hub.insertMany(hubs);
   console.log('6 hubs inserted — each with 3 alternate routes');
   await Shipment.insertMany(shipments);

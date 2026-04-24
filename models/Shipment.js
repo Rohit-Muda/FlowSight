@@ -16,7 +16,26 @@ const shipmentSchema = new mongoose.Schema({
   },
   riskScore: { type: Number, min: 0, max: 100, default: 0 },
   estimatedArrival: { type: Date },
-  transitHubs: [String]
+  transitHubs: [String],
+  cargoType: {
+    type: String,
+    enum: ['general', 'perishable', 'pharmaceutical', 'frozen', 'electronics'],
+    default: 'general'
+  },
+  cargoDescription: { type: String, default: '' },
+  cargoValueUSD: { type: Number, default: 0 },
+  expiryHours: { type: Number, default: null },
+  daysStuckAtHub: { type: Number, default: 0 },
+  noticesSent: { type: Number, default: 0 },
+  auction: {
+    isOpen: { type: Boolean, default: false },
+    type: { type: String, enum: ['distress', 'unclaimed', null], default: null },
+    minBidUSD: { type: Number, default: 0 },
+    currentBidUSD: { type: Number, default: 0 },
+    currentBidder: { type: String, default: '' },
+    auctionDeadline: { type: Date, default: null },
+    ownerApproved: { type: Boolean, default: false }
+  }
 }, { timestamps: true });
 
 export default mongoose.model('Shipment', shipmentSchema);

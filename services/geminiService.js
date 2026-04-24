@@ -30,7 +30,7 @@ Second sentence: state the recommended immediate action for the logistics manage
 Do not use bullet points, markdown, or line breaks. Write plain sentences only.`;
 
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: prompt
     });
 

@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import AlertPanel from './components/AlertPanel';
 import Timeline from './components/Timeline';
 import './index.css';
+import AuctionPanel from './components/AuctionPanel';
 
 import { API_BASE, SOCKET_URL } from './config';
 
@@ -20,6 +21,7 @@ export default function App() {
   const [activeAlert, setActiveAlert] = useState(null);
   const [connected, setConnected] = useState(false);
   const [disruptionLogs, setDisruptionLogs] = useState([]);
+  const [showAuction, setShowAuction] = useState(false);
 
   // Initial data fetch
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function App() {
         prev.map(h => h.hubId === data.hubId ? { ...h, ...data } : h)
       );
     };
-
+    
     const onDisruptionAlert = (data) => {
       setActiveAlert(data);
       setDisruptionLogs(prev => [{
@@ -72,12 +74,16 @@ export default function App() {
       }, ...prev].slice(0, 20));
     };
 
+    const onAuctionOpened = (data) => {
+      console.log('Auction opened:', data.shipmentId);
+    };
+
     socket.on('connect',           onConnect);
     socket.on('disconnect',        onDisconnect);
     socket.on('shipment-update',   onShipmentUpdate);
     socket.on('hub-update',        onHubUpdate);
     socket.on('disruption-alert',  onDisruptionAlert);
-
+    socket.on('auction-opened',    onAuctionOpened);
     // Cleanup: pass the exact same handler reference so only THIS effect's
     // listeners are removed, not any other component's listeners
     return () => {
@@ -86,6 +92,7 @@ export default function App() {
       socket.off('shipment-update',  onShipmentUpdate);
       socket.off('hub-update',       onHubUpdate);
       socket.off('disruption-alert', onDisruptionAlert);
+      socket.off('auction-opened',   onAuctionOpened);
     };
   }, []);
 
@@ -103,7 +110,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Navbar stats={stats} connected={connected} onSimulate={handleSimulate} />
+    <Navbar stats={stats} connected={connected} onSimulate={handleSimulate} onAuction={() => setShowAuction(true)} />
       <div className="main-layout">
         <div className="map-and-timeline">
           <ShipmentMap shipments={shipments} hubs={hubs} />
@@ -116,6 +123,12 @@ export default function App() {
           alert={activeAlert}
           hubs={hubs}
           onClose={() => setActiveAlert(null)}
+        />
+      )}
+      {showAuction && (
+        <AuctionPanel
+          shipments={shipments}
+          onClose={() => setShowAuction(false)}
         />
       )}
     </div>

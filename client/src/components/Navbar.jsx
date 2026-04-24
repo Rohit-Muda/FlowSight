@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Navbar({ stats, connected, onSimulate }) {
+export default function Navbar({ stats, connected, onSimulate, onAuction }) {
   const [simulating, setSimulating] = useState(false);
   const [simDone, setSimDone] = useState(false);
 
@@ -71,6 +71,13 @@ export default function Navbar({ stats, connected, onSimulate }) {
           style={btnStyle}
         >
           {btnLabel}
+        </button>
+        <button
+          className="simulate-btn"
+          onClick={onAuction}
+          style={{ borderColor: 'rgba(245,158,11,0.4)', color: '#f59e0b', background: 'rgba(245,158,11,0.08)' }}
+        >
+          Port Auctions
         </button>
       </div>
     </nav>

@@ -9,6 +9,7 @@ import hubRoutes from './routes/hubs.js';
 import { startGPSSimulator } from './simulator/gpsSimulator.js';
 import { startDisruptionSimulator } from './simulator/disruptionSimulator.js';
 import { startDisruptionEngine } from './services/disruptionEngine.js';
+import auctionRoutes from './routes/auction.js';
 
 dotenv.config();
 connectDB();
@@ -32,6 +33,8 @@ app.use(express.json());
 
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/hubs', hubRoutes);
+app.use('/api/auctions', auctionRoutes);
+
 
 app.get('/', (req, res) => {
   res.json({ message: 'Supply Chain API running' });
