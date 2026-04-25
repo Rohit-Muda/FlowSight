@@ -1,20 +1,22 @@
 # 1. PROJECT OVERVIEW
 **Project Name:** FlowSight
+
 **Full Title:** Real-time Supply Chain Disruption Detection and Intelligent Rerouting System
-**One Line Description:** A live logistics intelligence dashboard that detects supply chain disruptions before they cascade, scores risk across affected shipments, and recommends optimized reroutes — powered by AI-generated alerts.
+
+**One Line Description:** A live logistics intelligence dashboard that detects supply chain disruptions before they cascade, scores risk across affected shipments, and recommends optimized reroutes - powered by AI-generated alerts.
 
 **Key Numbers:**
-•	10 live shipments tracked simultaneously
-•	6 global hub nodes (major world ports)
-•	3 second GPS update interval
-•	30 second anomaly scan interval
-•	Risk score range: 0 to 100
-•	3 reroute options per disrupted hub
+- 10 live shipments tracked simultaneously
+- 6 global hub nodes (major world ports)
+- 3 second GPS update interval
+- 30 second anomaly scan interval
+- Risk score range: 0 to 100
+- 3 reroute options per disrupted hub
 
 ---
 
 # 2. PROBLEM STATEMENT
-Modern global supply chains manage millions of concurrent shipments across highly complex and volatile transportation networks. Critical transit disruptions — from sudden weather events to hidden operational bottlenecks — are chronically identified only after delivery timelines are already compromised.
+Modern global supply chains manage millions of concurrent shipments across highly complex and volatile transportation networks. Critical transit disruptions - from sudden weather events to hidden operational bottlenecks - are chronically identified only after delivery timelines are already compromised.
 
 **The Objective:** Design a scalable system capable of continuously analyzing multifaceted transit data to preemptively detect and flag potential supply chain disruptions. Formulate dynamic mechanisms that instantly execute or recommend highly optimized route adjustments before localized bottlenecks cascade into broader delays.
 
@@ -25,25 +27,29 @@ Modern global supply chains manage millions of concurrent shipments across highl
 4. **Cost Barrier:** Enterprise solutions like Resilinc and Kinaxis cost $500,000 to $5,000,000 per year. 95% of logistics companies cannot access them.
 
 **Market Context:**
-•	$184 billion annual disruption cost globally
-•	80% of organizations experienced supply chain disruption in 2024
-•	Major disruptions occur every 3.7 years on average
-•	Average cost per disruption: $1.5 million per day
+- $184 billion annual disruption cost globally
+- 80% of organizations experienced supply chain disruption in 2024
+- Major disruptions occur every 3.7 years on average
+- Average cost per disruption: $1.5 million per day
 
 ---
 
 # 3. OUR SOLUTION
 FlowSight solves this in 5 layers:
 
-**Layer 1 — Continuous Monitoring:** GPS simulator sends shipment position updates every 3 seconds. Hub congestion levels update every 20 seconds. All data flows through Socket.io with no polling required.
-**Layer 2 — Anomaly Detection:** Every 30 seconds the Disruption Engine scans all hubs. Any hub exceeding 70% congestion triggers immediate processing. Recovery is also detected and hubs auto-clear when congestion drops.
-**Layer 3 — Cascade Detection:** When a hub is flagged, the system finds every shipment whose route passes through it using a MongoDB array query. One query returns all connected downstream shipments instantly.
-**Layer 4 — Risk Scoring:** Each affected shipment receives a new risk score using a weighted formula combining real-time congestion, weather risk, and historical delay rates. Score range is 0 to 100.
-**Layer 5 — Intelligent Response:** Gemini AI generates a plain-English 2-sentence alert. Three rerouting options are scored and ranked by reliability vs cost vs time. Everything appears on screen in under 2 seconds.
+**Layer 1 - Continuous Monitoring:** GPS simulator sends shipment position updates every 3 seconds. Hub congestion levels update every 20 seconds. All data flows through Socket.io with no polling required.
+
+**Layer 2 - Anomaly Detection:** Every 30 seconds the Disruption Engine scans all hubs. Any hub exceeding 70% congestion triggers immediate processing. Recovery is also detected and hubs auto-clear when congestion drops.
+
+**Layer 3 - Cascade Detection:** When a hub is flagged, the system finds every shipment whose route passes through it using a MongoDB array query. One query returns all connected downstream shipments instantly.
+
+**Layer 4 - Risk Scoring:** Each affected shipment receives a new risk score using a weighted formula combining real-time congestion, weather risk, and historical delay rates. Score range is 0 to 100.
+
+**Layer 5 - Intelligent Response:** Gemini AI generates a plain-English 2-sentence alert. Three rerouting options are scored and ranked by reliability vs cost vs time. Everything appears on screen in under 2 seconds.
 
 **What Makes Us Different:**
 1.	**Ripple Score:** Not just "hub is disrupted" but a calculated impact score (0-100) for every downstream shipment. Managers know exactly which shipments to act on first.
-2.	**AI Plain-English Alerts:** Gemini generates human-readable explanations per disruption. No dashboard reading required — the system tells you what happened and what to do.
+2.	**AI Plain-English Alerts:** Gemini generates human-readable explanations per disruption. No dashboard reading required - the system tells you what happened and what to do.
 3.	**Premium UI/UX:** Built with a modern Stitch design system featuring frosted glass (glassmorphism), cohesive color tokens (Electric Indigo, Emerald, Amber), and dynamic animations.
 4.	**Live Demo Button:** "Simulate Disruption" triggers a real disruption event through the actual engine, not mocked. Every feature fires in front of judges in 3 seconds.
 
@@ -52,34 +58,35 @@ FlowSight solves this in 5 layers:
 # 4. SYSTEM ARCHITECTURE
 The system has 4 layers:
 
-**Layer 1 — Data Sources:**
-•	GPS Simulator (mock IoT sensor data)
-•	Disruption Simulator (mock congestion spikes)
-•	Weather risk function (based on hub coordinates)
-•	Historical delay rates per hub (hardcoded baseline)
-•	MongoDB Atlas (persistent storage)
+**Layer 1 - Data Sources:**
+- GPS Simulator (mock IoT sensor data)
+- Disruption Simulator (mock congestion spikes)
+- Weather risk function (based on hub coordinates)
+- Historical delay rates per hub (hardcoded baseline)
+- MongoDB Atlas (persistent storage)
 
-**Layer 2 — Backend Processing:**
-•	Node.js + Express REST API handles all HTTP requests
-•	Socket.io maintains persistent WebSocket connections to all browser clients
-•	Three independent interval processes run simultaneously: GPS every 3 seconds, disruption every 20 seconds, anomaly engine every 30 seconds
+**Layer 2 - Backend Processing:**
+- Node.js + Express REST API handles all HTTP requests
+- Socket.io maintains persistent WebSocket connections to all browser clients
+- Three independent interval processes run simultaneously: GPS every 3 seconds, disruption every 20 seconds, anomaly engine every 30 seconds
 
-**Layer 3 — Intelligence Core:**
-•	disruptionEngine.js runs the weighted risk formula and cascade detection
-•	geminiService.js calls Gemini 1.5 Flash API with a structured prompt
-•	Route scoring ranks alternates by reliability vs time vs cost
-•	All logic runs server-side before any data reaches the frontend
+**Layer 3 - Intelligence Core:**
+- disruptionEngine.js runs the weighted risk formula and cascade detection
+- geminiService.js calls Gemini 1.5 Flash API with a structured prompt
+- Route scoring ranks alternates by reliability vs time vs cost
+- All logic runs server-side before any data reaches the frontend
 
-**Layer 4 — Frontend Display:**
-•	React single page app with 5 components
-•	Navbar (live stats), ShipmentMap (Leaflet.js), Sidebar (risk-sorted list), AlertPanel (slide-in disruption card), Timeline (Recharts area chart)
-•	All updates via Socket.io events — no polling, no page refresh
+**Layer 4 - Frontend Display:**
+- React single page app with 5 components
+- Navbar (live stats), ShipmentMap (Leaflet.js), Sidebar (risk-sorted list), AlertPanel (slide-in disruption card), Timeline (Recharts area chart)
+- All updates via Socket.io events - no polling, no page refresh
 
-**Data Flow — Normal (every 3 seconds):** GPS fires → MongoDB updated → Socket emits shipment-update → React moves map marker
-**Data Flow — Disruption:** Congestion spikes → Engine detects anomaly → Cascade finds affected shipments → Risk scores recalculated → Gemini generates alert text → DisruptionLog saved to MongoDB → Socket emits disruption-alert → AlertPanel slides in on frontend
+**Data Flow - Normal (every 3 seconds):** 
+GPS fires -> MongoDB updated -> Socket emits shipment-update -> React moves map marker
 
----
+**Data Flow - Disruption:** Congestion spikes -> Engine detects anomaly -> Cascade finds affected shipments -> Risk scores recalculated -> Gemini generates alert text -> DisruptionLog saved to MongoDB -> Socket emits disruption-alert -> AlertPanel slides in on frontend
 
+--- 
 # 5. COMPLETE FEATURES LIST
 1.	**Live world map:** Dark CartoDB tile map with real-time moving shipment markers and hub markers (Leaflet.js).
 2.	**Colored shipment markers:** Green = on-time, Orange = at-risk, Red = delayed. Custom glow effect per status.
@@ -103,44 +110,47 @@ The system has 4 layers:
 
 # 6. TECH STACK
 **Frontend:**
-•	React 18 — UI framework, component-based, state management
-•	Leaflet.js + React-Leaflet — Interactive world map, custom markers, popups
-•	Socket.io-client — WebSocket connection to receive live events from backend
-•	Axios — HTTP requests to fetch initial data on app load
-•	Recharts — Area chart for disruption timeline with custom tooltip
-•	Vanilla CSS + Stitch Design System — Custom UI styling
+- React 18 - UI framework, component-based, state management
+- Leaflet.js + React-Leaflet - Interactive world map, custom markers, popups
+- Socket.io-client - WebSocket connection to receive live events from backend
+- Axios - HTTP requests to fetch initial data on app load
+- Recharts - Area chart for disruption timeline with custom tooltip
+- Vanilla CSS + Stitch Design System - Custom UI styling
 
 **Backend:**
-•	Node.js 22 LTS — JavaScript runtime
-•	Express.js — REST API framework, handles all HTTP routes
-•	Socket.io — WebSocket server, pushes real-time events to all connected clients
-•	Mongoose — MongoDB ODM, defines schemas, runs database queries
-•	@google/generative-ai — Gemini 1.5 Flash SDK for AI alert generation
-•	dotenv — Loads environment variables securely
+- Node.js 22 LTS - JavaScript runtime
+- Express.js - REST API framework, handles all HTTP routes
+- Socket.io - WebSocket server, pushes real-time events to all connected clients
+- Mongoose - MongoDB ODM, defines schemas, runs database queries
+- @google/generative-ai - Gemini 1.5 Flash SDK for AI alert generation
+- dotenv - Loads environment variables securely
 
 **Database and AI:**
-•	MongoDB Atlas — Cloud database, stores shipments, hubs, disruption logs. Free M0 tier.
-•	Google Gemini 1.5 Flash — Generates plain-English disruption alerts per event.
+- MongoDB Atlas - Cloud database, stores shipments, hubs, disruption logs. Free M0 tier.
+- Google Gemini 1.5 Flash - Generates plain-English disruption alerts per event.
 
 **Deployment:**
-•	Google Cloud Run — Fully managed serverless execution environment for containerized applications.
-•	Docker — Multi-stage containerization for both frontend (via Nginx) and backend.
+- Google Cloud Run - Fully managed serverless execution environment for containerized applications.
+- Docker - Multi-stage containerization for both frontend (via Nginx) and backend.
 
-**Language:** 100% JavaScript — MERN Stack (MongoDB, Express, React, Node.js). Same language across frontend and backend. ES Modules (import/export) used throughout.
+**Language:** 100% JavaScript - MERN Stack (MongoDB, Express, React, Node.js). Same language across frontend and backend. ES Modules (import/export) used throughout.
 
 ---
 
 # 7. ALGORITHMS AND FORMULAS
 **Core Risk Scoring Formula:**
 `rippleScore = (congestionLevel × 0.5) + (weatherRisk × 0.3) + (historicalDelayRate × 0.2)`
+
 *Why:* Congestion gets 50% weight (strongest real-time signal), Weather gets 30% (predictive), Historical gets 20% (baseline).
 
 **Shipment Risk Blend Formula:**
 `newShipmentRisk = (existingRisk × 0.4) + (rippleScore × 0.6)`
+
 *Why:* Hub's ripple score dominates (60%) because disruption is the immediate cause.
 
 **Route Scoring Formula:**
 `routeScore = (reliabilityScore × 0.6) - (extraTimeMins × 0.04)`
+
 *Why:* Reliability weighted heavily (60%). Time penalty subtracts from score so longer detours rank lower.
 
 **Cascade Detection Logic:** Each shipment stores a `transitHubs` array. When a hub is disrupted, MongoDB queries all shipments containing that hub's name. A simplified Breadth-First Search finding all nodes connected to the disrupted node.
@@ -148,12 +158,12 @@ The system has 4 layers:
 **Anomaly Detection Threshold:** Any hub above 70% congestion is classified as disrupted.
 
 **Historical Delay Rates Per Hub:**
-•	Mumbai Port: 35% (moderate)
-•	Dubai Port: 28% (low-moderate)
-•	Rotterdam Port: 45% (high)
-•	Singapore Port: 20% (lowest)
-•	Shanghai Port: 60% (highest)
-•	New York Port: 38% (moderate-high)
+- Mumbai Port: 35% (moderate)
+- Dubai Port: 28% (low-moderate)
+- Rotterdam Port: 45% (high)
+- Singapore Port: 20% (lowest)
+- Shanghai Port: 60% (highest)
+- New York Port: 38% (moderate-high)
 
 ---
 
@@ -164,15 +174,15 @@ The system has 4 layers:
 ---
 
 # 9. API ENDPOINTS
-•	`GET /` — Health check
-•	`GET /api/shipments` — Fetch all shipments
-•	`GET /api/shipments/:shipmentId` — Fetch single shipment by ID
-•	`PATCH /api/shipments/:shipmentId` — Update shipment field
-•	`GET /api/hubs` — Fetch all hubs
-•	`GET /api/hubs/logs/recent` — Last 20 disruption logs from MongoDB
-•	`GET /api/hubs/:hubId/reroute` — Get scored reroute options
-•	`PATCH /api/hubs/:hubId` — Update hub field
-•	`POST /api/hubs/:hubId/simulate-disruption` — Trigger demo disruption through real engine
+- `GET /` - Health check
+- `GET /api/shipments` - Fetch all shipments
+- `GET /api/shipments/:shipmentId` - Fetch single shipment by ID
+- `PATCH /api/shipments/:shipmentId` - Update shipment field
+- `GET /api/hubs` - Fetch all hubs
+- `GET /api/hubs/logs/recent` - Last 20 disruption logs from MongoDB
+- `GET /api/hubs/:hubId/reroute` - Get scored reroute options
+- `PATCH /api/hubs/:hubId` - Update hub field
+- `POST /api/hubs/:hubId/simulate-disruption` - Trigger demo disruption through real engine
 
 ---
 
@@ -183,17 +193,17 @@ The system has 4 layers:
 
 # 11. FILE AND FOLDER STRUCTURE
 **Backend (`/`)**
-•	`config/`, `models/`, `routes/`, `simulator/`, `services/`
-•	`server.js`, `socket.js`, `seed.js`
-•	`Dockerfile` — Container configuration for Node.js API
-•	`.gitignore` — Excludes sensitive files and logs
+- `config/`, `models/`, `routes/`, `simulator/`, `services/`
+- `server.js`, `socket.js`, `seed.js`
+- `Dockerfile` - Container configuration for Node.js API
+- `.gitignore` - Excludes sensitive files and logs
 
 **Frontend (`/client`)**
-•	`src/components/` — React UI components (Navbar, AlertPanel, AuctionPanel, etc.)
-•	`src/index.css` — Global Stitch design tokens and styles
-•	`src/config.js` — Cloud Run API base URL mappings
-•	`Dockerfile` — Multi-stage build (Node build -> Nginx serving)
-•	`nginx.conf` — Custom server rules for React routing on port 8080
+- `src/components/` - React UI components (Navbar, AlertPanel, AuctionPanel, etc.)
+- `src/index.css` - Global Stitch design tokens and styles
+- `src/config.js` - Cloud Run API base URL mappings
+- `Dockerfile` - Multi-stage build (Node build -> Nginx serving)
+- `nginx.conf` - Custom server rules for React routing on port 8080
 
 ---
 
@@ -220,33 +230,33 @@ FlowSight utilizes a modern, serverless container architecture hosted entirely o
 ---
 
 # 13. FUTURE SCOPE
-**Phase 2 — Smart Layer:**
-•	Real Weather API integration (OpenWeatherMap).
-•	Time-based anomaly detection compared to historical averages.
-•	Machine Learning scoring model (Isolation Forest algorithm).
+**Phase 2 - Smart Layer:**
+- Real Weather API integration (OpenWeatherMap).
+- Time-based anomaly detection compared to historical averages.
+- Machine Learning scoring model (Isolation Forest algorithm).
 
-**Phase 3 — Differentiation Features:**
-•	What-If Simulation Mode.
-•	Cost vs Time vs Risk Slider.
-•	Historical Replay Mode.
-•	Real Carrier API Integration (MarineTraffic API).
-•	Multi-User Support.
+**Phase 3 - Differentiation Features:**
+- What-If Simulation Mode.
+- Cost vs Time vs Risk Slider.
+- Historical Replay Mode.
+- Real Carrier API Integration (MarineTraffic API).
+- Multi-User Support.
 
-**Phase 4 — Scale:**
-•	Replace Socket.io with Apache Kafka.
-•	Replace MongoDB with Neo4j Graph Database.
+**Phase 4 - Scale:**
+- Replace Socket.io with Apache Kafka.
+- Replace MongoDB with Neo4j Graph Database.
 
 ---
 
 # 14. COMPETITIVE ANALYSIS
 **Existing enterprise solutions:**
-• Resilinc (Costs $500K-$5M/year)
-• Kinaxis Maestro (Complex setup)
-• SAP/Microsoft Control Towers (Requires existing infra)
+- Resilinc (Costs $500K-$5M/year)
+- Kinaxis Maestro (Complex setup)
+- SAP/Microsoft Control Towers (Requires existing infra)
 
 **FlowSight Advantage:**
-•	Built on open-source MERN stack — any developer can deploy it
-•	Zero licensing cost — all free tier services
-•	Demo-ready in 3 seconds
-•	Explainable AI — risk formula is transparent
-•	Target audience: 95% of logistics companies that cannot afford enterprise tools
+- Built on open-source MERN stack - any developer can deploy it
+- Zero licensing cost - all free tier services
+- Demo-ready in 3 seconds
+- Explainable AI - risk formula is transparent
+- Target audience: 95% of logistics companies that cannot afford enterprise tools
